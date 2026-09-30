@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+
+# 运行时数据
+shares.db
+downloaded/
+
+# 编辑器
+.vscode/
+
+# 临时文件
+_tmp_*
+*.log

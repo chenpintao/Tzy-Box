@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <title>画板</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link id="theme" rel="stylesheet" href="bootswatch.min.css">
+    <link rel="stylesheet" href="sweetalert.css">
+    <script src="jquery.min.js"></script>
+    <script src="bootstrap.bundle.min.js"></script>
+    <script src="sweetalert-dev.js"></script>
+    <script src="jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #canvasInner {
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+        #boardCanvas {
+            display: block;
+        }
+        .board-toolbar .btn {
+            font-size: 0.8rem;
+        }
+        .board-toolbar .vr {
+            margin: 0 2px;
+        }
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #555;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.2);
+            border-color: #fff;
+        }
+        .color-swatch.active {
+            border-color: #fff;
+            box-shadow: 0 0 6px 2px rgba(255,255,255,0.6);
+        }
+        .bg-swatch {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 2px solid #555;
+            cursor: pointer;
+        }
+        .bg-swatch:hover {
+            border-color: #fff;
+        }
+        .bg-swatch.active {
+            border-color: #ffc107;
+            box-shadow: 0 0 4px 1px rgba(255,193,7,0.5);
+        }
+        .board-toolbar .btn-sm-w {
+            font-size: 0.7rem;
+            padding: 1px 6px;
+        }
+    </style>
+</head>
+
+<body class="bg-dark">
+
+    <!-- 工具栏 -->
+    <nav class="navbar navbar-dark bg-dark border-bottom border-secondary board-toolbar py-1 px-2 flex-shrink-0" style="--bs-bg-opacity:1;">
+        <div class="d-flex align-items-center gap-1 flex-wrap w-100">
+
+            <!-- 工具选择 -->
+            <div class="btn-group btn-group-sm me-1">
+                <button class="btn btn-outline-light active" id="btnSelect" title="选择/移动 (V)">选择</button>
+                <button class="btn btn-outline-light" id="btnDraw" title="画笔 (P)">画笔</button>
+                <button class="btn btn-outline-light" id="btnText" title="文字 (T)">文字</button>
+                <button class="btn btn-outline-info" id="btnImage" title="插入图片">图片</button>
+            </div>
+
+            <!-- 预设颜色 -->
+            <div class="d-flex align-items-center gap-1 me-1" id="colorSwatches">
+                <span class="color-swatch active" data-color="#000000" style="background:#000000" title="黑色"></span>
+                <span class="color-swatch" data-color="#FFFFFF" style="background:#FFFFFF" title="白色"></span>
+                <span class="color-swatch" data-color="#FF0000" style="background:#FF0000" title="红色"></span>
+                <span class="color-swatch" data-color="#0000FF" style="background:#0000FF" title="蓝色"></span>
+                <span class="color-swatch" data-color="#00AA00" style="background:#00AA00" title="绿色"></span>
+                <span class="color-swatch" data-color="#FFFF00" style="background:#FFFF00" title="黄色"></span>
+                <span class="color-swatch" data-color="#FF8800" style="background:#FF8800" title="橙色"></span>
+                <span class="color-swatch" data-color="#8800CC" style="background:#8800CC" title="紫色"></span>
+                <span class="color-swatch" data-color="#888888" style="background:#888888" title="灰色"></span>
+                <span class="color-swatch" data-color="#FF69B4" style="background:#FF69B4" title="粉色"></span>
+            </div>
+
+            <div class="vr bg-secondary"></div>
+
+            <!-- 预设线宽 -->
+            <div class="btn-group btn-group-sm me-1" id="widthPresets">
+                <button class="btn btn-outline-light btn-sm-w active" data-width="3" title="细">细</button>
+                <button class="btn btn-outline-light btn-sm-w" data-width="8" title="中">中</button>
+                <button class="btn btn-outline-light btn-sm-w" data-width="18" title="粗">粗</button>
+            </div>
+
+            <div class="vr bg-secondary"></div>
+
+            <!-- 背景色 -->
+            <div class="d-flex align-items-center gap-1 me-1" id="bgSwatches">
+                <span class="text-light small me-1">背景</span>
+                <span class="bg-swatch active" data-bg="#FFFFFF" style="background:#FFFFFF" title="白色"></span>
+                <span class="bg-swatch" data-bg="#1a1a1a" style="background:#1a1a1a" title="黑色"></span>
+                <span class="bg-swatch" data-bg="#1B3A1B" style="background:#1B3A1B" title="墨绿"></span>
+                <span class="bg-swatch" data-bg="#0D1B3E" style="background:#0D1B3E" title="墨蓝"></span>
+            </div>
+
+            <div class="vr bg-secondary"></div>
+
+            <!-- 编辑 -->
+            <div class="btn-group btn-group-sm me-1">
+                <button class="btn btn-outline-secondary" id="btnUndo" title="撤销 (Ctrl+Z)">撤销</button>
+                <button class="btn btn-outline-secondary" id="btnRedo" title="重做 (Ctrl+Y)">重做</button>
+                <button class="btn btn-outline-danger" id="btnDelete" title="删除选中 (Del)">删除</button>
+                <button class="btn btn-outline-warning" id="btnClear" title="清空画板">清空</button>
+            </div>
+
+            <div class="vr bg-secondary"></div>
+
+            <!-- 保存/关闭 -->
+            <div class="btn-group btn-group-sm ms-auto">
+                <button class="btn btn-success" id="btnExport" title="导出保存">导出</button>
+                <button class="btn btn-outline-danger" id="btnClose" title="关闭">关闭</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 画布容器 -->
+    <div class="flex-fill d-flex align-items-center justify-content-center overflow-auto p-3 bg-white" id="canvasWrap">
+        <div id="canvasInner">
+            <canvas id="boardCanvas"></canvas>
+        </div>
+    </div>
+
+    <!-- 缩放控制 -->
+    <div class="position-fixed bottom-0 end-0 m-3 z-3">
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-dark" id="zoomOut">−</button>
+            <button class="btn btn-dark disabled" id="zoomLabel" style="min-width:3.5em;">100%</button>
+            <button class="btn btn-dark" id="zoomIn">+</button>
+            <button class="btn btn-secondary" id="zoomFit">适应</button>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" accept="image/*" id="imgInput" class="d-none">
+
+    <script>
+        // ==================== Canvas Init ====================
+        const CANVAS_W = 2200;
+        const CANVAS_H = 1395;
+
+        const canvasEl = document.getElementById('boardCanvas');
+        const fabricCanvas = new fabric.Canvas(canvasEl, {
+            width: CANVAS_W,
+            height: CANVAS_H,
+            backgroundColor: '#ffffff',
+            selection: true,
+            preserveObjectStacking: true,
+            stopContextMenu: true,
+            fireRightClick: false,
+        });
+
+        let currentTool = 'select';
+        let zoomLevel = 1;
+        let undoStack = [];
+        let redoStack = [];
+        let currentColor = '#000000';
+        let currentWidth = 3;
+        const MAX_HISTORY = 50;
+
+        // ==================== Zoom ====================
+        function applyZoom() {
+            // 只用 Fabric 原生 setZoom 处理坐标映射
+            fabricCanvas.setZoom(zoomLevel);
+            // 用外层容器裁剪视觉大小，不动 canvas 元素的 CSS 尺寸
+            $('#canvasInner').css({
+                width: Math.round(CANVAS_W * zoomLevel) + 'px',
+                height: Math.round(CANVAS_H * zoomLevel) + 'px'
+            });
+            $('#zoomLabel').text(Math.round(zoomLevel * 100) + '%');
+        }
+
+        function fitZoom() {
+            var wrap = document.getElementById('canvasWrap');
+            var pad = 32;
+            var maxW = wrap.clientWidth - pad;
+            var maxH = wrap.clientHeight - pad;
+            zoomLevel = Math.min(maxW / CANVAS_W, maxH / CANVAS_H, 1);
+            applyZoom();
+        }
+
+        $('#zoomIn').click(function () { zoomLevel = Math.min(zoomLevel + 0.1, 3); applyZoom(); });
+        $('#zoomOut').click(function () { zoomLevel = Math.max(zoomLevel - 0.1, 0.2); applyZoom(); });
+        $('#zoomFit').click(fitZoom);
+
+        document.getElementById('canvasWrap').addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                zoomLevel += e.deltaY < 0 ? 0.05 : -0.05;
+                zoomLevel = Math.min(3, Math.max(0.2, zoomLevel));
+                applyZoom();
+            }
+        }, { passive: false });
+
+        // ==================== Undo/Redo ====================
+        function saveState() {
+            var json = fabricCanvas.toJSON(['id']);
+            undoStack.push(json);
+            if (undoStack.length > MAX_HISTORY) undoStack.shift();
+            redoStack = [];
+        }
+
+        function undo() {
+            if (undoStack.length < 2) return;
+            var current = undoStack.pop();
+            redoStack.push(current);
+            var prev = undoStack[undoStack.length - 1];
+            fabricCanvas.loadFromJSON(prev, function () {
+                fabricCanvas.renderAll();
+                refreshToolState();
+            });
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            var next = redoStack.pop();
+            undoStack.push(next);
+            fabricCanvas.loadFromJSON(next, function () {
+                fabricCanvas.renderAll();
+                refreshToolState();
+            });
+        }
+
+        saveState();
+        fabricCanvas.on('object:modified', function () { saveState(); });
+        fabricCanvas.on('path:created', function () { saveState(); });
+
+        // ==================== Tool Switching ====================
+        function setTool(tool) {
+            currentTool = tool;
+            $('.board-toolbar .btn').removeClass('active');
+            fabricCanvas.isDrawingMode = false;
+            fabricCanvas.selection = true;
+            fabricCanvas.defaultCursor = 'default';
+
+            switch (tool) {
+                case 'select':
+                    $('#btnSelect').addClass('active');
+                    break;
+                case 'draw':
+                    $('#btnDraw').addClass('active');
+                    fabricCanvas.isDrawingMode = true;
+                    fabricCanvas.freeDrawingBrush.color = currentColor;
+                    fabricCanvas.freeDrawingBrush.width = currentWidth;
+                    fabricCanvas.selection = false;
+                    break;
+                case 'text':
+                    $('#btnText').addClass('active');
+                    addText(CANVAS_W / 2 - 150, CANVAS_H / 2 - 20);
+                    saveState();
+                    setTool('select');
+                    return;
+                case 'image':
+                    $('#btnImage').addClass('active');
+                    break;
+            }
+        }
+
+        // ==================== Text ====================
+        function addText(x, y) {
+            var textbox = new fabric.Textbox('双击输入文字', {
+                left: x,
+                top: y,
+                width: 300,
+                fontSize: 40,
+                fill: currentColor,
+                fontFamily: 'sans-serif',
+                editable: true,
+            });
+            fabricCanvas.add(textbox);
+            fabricCanvas.setActiveObject(textbox);
+            textbox.enterEditing();
+            textbox.selectAll();
+        }
+
+        // ==================== Image ====================
+        function insertImage(dataUrl) {
+            fabric.Image.fromURL(dataUrl, function (img) {
+                var maxW = CANVAS_W * 0.8;
+                var maxH = CANVAS_H * 0.8;
+                if (img.width > maxW || img.height > maxH) {
+                    var ratio = Math.min(maxW / img.width, maxH / img.height);
+                    img.scale(ratio);
+                }
+                img.set({
+                    left: CANVAS_W / 2 - (img.width * img.scaleX) / 2,
+                    top: CANVAS_H / 2 - (img.height * img.scaleY) / 2,
+                });
+                fabricCanvas.add(img);
+                fabricCanvas.setActiveObject(img);
+                saveState();
+            });
+        }
+
+        // ==================== Toolbar events ====================
+        $('#btnSelect').click(function () { setTool('select'); });
+        $('#btnDraw').click(function () { setTool('draw'); });
+        $('#btnText').click(function () { setTool('text'); });
+
+        $('#btnImage').click(function () {
+            setTool('image');
+            $('#imgInput').click();
+        });
+
+        $('#imgInput').change(function (e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function (ev) { insertImage(ev.target.result); };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        });
+
+        $('#btnUndo').click(undo);
+        $('#btnRedo').click(redo);
+
+        $('#btnDelete').click(function () {
+            var active = fabricCanvas.getActiveObject();
+            if (active) {
+                fabricCanvas.remove(active);
+                fabricCanvas.discardActiveObject();
+                saveState();
+            }
+        });
+
+        $('#btnClear').click(function () {
+            swal({
+                title: '确认清空?',
+                text: '画板上所有内容将丢失',
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '确认清空',
+                cancelButtonText: '取消',
+            }, function (confirmed) {
+                if (confirmed) {
+                    fabricCanvas.clear();
+                    fabricCanvas.backgroundColor = '#FFFFFF';
+                    fabricCanvas.renderAll();
+                    undoStack = [];
+                    redoStack = [];
+                    saveState();
+                    // 重置 swatch 高亮
+                    $('#bgSwatches .bg-swatch').removeClass('active');
+                    $('#bgSwatches .bg-swatch[data-bg="#FFFFFF"]').addClass('active');
+                }
+            });
+        });
+
+        // ==================== Color ====================
+        $('#colorSwatches').on('click', '.color-swatch', function () {
+            currentColor = $(this).data('color');
+            $('#colorSwatches .color-swatch').removeClass('active');
+            $(this).addClass('active');
+            if (fabricCanvas.isDrawingMode) {
+                fabricCanvas.freeDrawingBrush.color = currentColor;
+            }
+            var active = fabricCanvas.getActiveObject();
+            if (active) {
+                if (active.type === 'textbox' || active.type === 'i-text') {
+                    active.set('fill', currentColor);
+                } else if (active.stroke !== undefined) {
+                    active.set('stroke', currentColor);
+                }
+                fabricCanvas.renderAll();
+            }
+        });
+
+        // ==================== Stroke Width ====================
+        $('#widthPresets').on('click', '.btn', function () {
+            currentWidth = parseInt($(this).data('width'));
+            $('#widthPresets .btn').removeClass('active');
+            $(this).addClass('active');
+            if (fabricCanvas.isDrawingMode) {
+                fabricCanvas.freeDrawingBrush.width = currentWidth;
+            }
+            var active = fabricCanvas.getActiveObject();
+            if (active && active.strokeWidth !== undefined) {
+                active.set('strokeWidth', currentWidth);
+                fabricCanvas.renderAll();
+            }
+        });
+
+        // ==================== Background ====================
+        $('#bgSwatches').on('click', '.bg-swatch', function () {
+            var bg = $(this).data('bg');
+            fabricCanvas.backgroundColor = bg;
+            fabricCanvas.renderAll();
+            $('#bgSwatches .bg-swatch').removeClass('active');
+            $(this).addClass('active');
+        });
+
+        // ==================== Keyboard ====================
+        $(document).keydown(function (e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (fabricCanvas.getActiveObject() && fabricCanvas.getActiveObject().isEditing) return;
+
+            switch (e.key.toLowerCase()) {
+                case 'v': if (!e.ctrlKey) setTool('select'); break;
+                case 'p': if (!e.ctrlKey) setTool('draw'); break;
+                case 't': if (!e.ctrlKey) setTool('text'); break;
+                case 'delete':
+                case 'backspace':
+                    var a = fabricCanvas.getActiveObject();
+                    if (a) { fabricCanvas.remove(a); fabricCanvas.discardActiveObject(); saveState(); }
+                    break;
+                case 'z': if (e.ctrlKey) { e.preventDefault(); undo(); } break;
+                case 'y': if (e.ctrlKey) { e.preventDefault(); redo(); } break;
+            }
+        });
+
+        // Paste image
+        $(document).on('paste', function (e) {
+            var items = e.originalEvent.clipboardData.items;
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                if (item.type.indexOf('image/') === 0) {
+                    var blob = item.getAsFile();
+                    var reader = new FileReader();
+                    reader.onload = function (ev) { insertImage(ev.target.result); };
+                    reader.readAsDataURL(blob);
+                    break;
+                }
+            }
+        });
+
+        // ==================== Selection sync ====================
+        fabricCanvas.on('selection:created', refreshToolState);
+        fabricCanvas.on('selection:updated', refreshToolState);
+        fabricCanvas.on('selection:cleared', refreshToolState);
+
+        function refreshToolState() {
+            var active = fabricCanvas.getActiveObject();
+            if (active) {
+                if (active.fill && active.type !== 'rect') {
+                    selectColorSwatch(active.fill);
+                } else if (active.stroke) {
+                    selectColorSwatch(active.stroke);
+                }
+                if (active.strokeWidth !== undefined) {
+                    selectWidthPreset(active.strokeWidth);
+                }
+            }
+        }
+
+        function selectColorSwatch(color) {
+            currentColor = color;
+            $('#colorSwatches .color-swatch').removeClass('active');
+            $('#colorSwatches .color-swatch').each(function () {
+                if ($(this).data('color').toUpperCase() === color.toUpperCase()) {
+                    $(this).addClass('active');
+                }
+            });
+        }
+
+        function selectWidthPreset(w) {
+            currentWidth = w;
+            $('#widthPresets .btn').removeClass('active');
+            // 选择最接近的预设
+            var best = null, bestDiff = Infinity;
+            $('#widthPresets .btn').each(function () {
+                var v = parseInt($(this).data('width'));
+                var d = Math.abs(v - w);
+                if (d < bestDiff) { bestDiff = d; best = $(this); }
+            });
+            if (best) best.addClass('active');
+        }
+
+        // ==================== Export ====================
+        $('#btnExport').click(async function () {
+            var $btn = $('#btnExport');
+            $btn.prop('disabled', true).text('导出中...');
+
+            try {
+                var dataUrl = fabricCanvas.toDataURL({
+                    format: 'jpeg',
+                    quality: 0.92,
+                    multiplier: 1,
+                    width: CANVAS_W,
+                    height: CANVAS_H,
+                });
+                var resp = await fetch(dataUrl);
+                var canvasBlob = await resp.blob();
+
+                var zipResp = await fetch('blackbroad.zip');
+                if (!zipResp.ok) throw new Error('下载 blackbroad.zip 失败');
+                var zipArrayBuf = await zipResp.arrayBuffer();
+
+                var zip = await JSZip.loadAsync(zipArrayBuf);
+                var targetPath = 'res/image/7769755f-f199-4371-a655-63ea2edcf153.jpg';
+                if (!zip.file(targetPath)) throw new Error('ZIP 中找不到 ' + targetPath);
+                zip.file(targetPath, canvasBlob, { binary: true });
+
+                var outBlob = await zip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 },
+                });
+
+                var url = URL.createObjectURL(outBlob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'blackbroad_export.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                swal('导出成功', 'blackbroad_export.zip 已开始下载', 'success');
+            } catch (err) {
+                console.error(err);
+                swal('导出失败', err.message, 'error');
+            } finally {
+                $btn.prop('disabled', false).text('导出');
+            }
+        });
+
+        $('#btnClose').click(function () {
+            swal({
+                title: '确定关闭?',
+                text: '未导出的内容将丢失',
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '关闭',
+                cancelButtonText: '取消',
+            }, function (confirmed) {
+                if (confirmed) window.close();
+            });
+        });
+
+        // ==================== Init ====================
+        setTool('select');
+        fitZoom();
+        $(window).resize(fitZoom);
+    </script>
+</body>
+
+</html>
