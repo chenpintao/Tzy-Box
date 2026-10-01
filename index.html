@@ -388,8 +388,7 @@ var _hmt = _hmt || [];
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#dev" onclick="loadRoot()">开发工具</a>
                 </li>
                 
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Update"
-                        onclick="loadChangelog()">说明&致谢</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Update">说明&致谢</a></li>
             </ul>
         </div>
     </div>
@@ -1482,12 +1481,6 @@ var _hmt = _hmt || [];
                             Loshop & Cpt
                         </div>
                     </div>
-
-                    <div class="container mb-3">
-                        <h1 class="text-primary">更新日志</h1>
-                        <div class="accordion" id="accordionExample"></div>
-
-                    </div>
                 </div>
             </div>
         </div>
@@ -2532,30 +2525,6 @@ var _hmt = _hmt || [];
         };
     })();
     </script>
-
-<!-- 更新日志 Modal -->
-<div class="modal fade" id="updateLogModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content rounded-3">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">更新日志</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="关闭"></button>
-            </div>
-            <div class="modal-body" id="updateLogContent">
-                <!-- 更新日志内容将通过JavaScript动态加载 -->
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">加载中...</span>
-                    </div>
-                    <p class="mt-2 text-muted">正在加载更新日志...</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="markUpdateAsRead()">我知道了</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 </body>
 

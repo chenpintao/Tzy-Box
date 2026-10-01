@@ -6,7 +6,7 @@
 // ==================== 常量配置 ====================
 const LINSPIRER_KEY = CryptoJS.enc.Utf8.parse("1191ADF18489D8DA");
 const LINSPIRER_IV = CryptoJS.enc.Utf8.parse("5E9B755A8B674394");
-const LINSPIRER_API_BASE = "https://zytb-linspirer-api.loshop.com.cn";
+const LINSPIRER_API_BASE = "https://cloud.linspirer.com:883";
 const LINSPIRER_API = LINSPIRER_API_BASE + "/public-interface.php";
 const CLIENT_VERSION = "zhongyukejiao_hem_6.10.004.6";
 const FIXED_UUID = "40E06F51-30D0-D6AD-7F7D-008AD0ADC570";
