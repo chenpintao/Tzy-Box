@@ -1290,10 +1290,13 @@ async function mistake_query() {
         var tb = $(`<tr class="table" background-color: rgba(255,255,255,0.8) !important;>
                     <th scope="row">${Number(i) + 1}</th>
                     <td>${data[i].source}</td>
-                    <td><img src=${data[i].stemShoot} width=100%></img></td>
+                    <td><img src=${proxyImgSrc(data[i].stemShoot)} width=100%></img></td>
                     <td>${data[i].creationTime}</td>
                 </tr>`)
         tb.data("id", data[i].id);
+        tb.data("stemShoot", data[i].stemShoot);
+        tb.data("source", data[i].source);
+        tb.data("title", data[i].title);
         tb.click(async function () {
             try {
                 // 显示 loading
@@ -1318,9 +1321,20 @@ async function mistake_query() {
                 });
                 let detail = await res.json();
                 detail = detail.result;
-                if (!detail) { modalBody.innerHTML = origHtml; swal("无数据"); return; }
-
                 modalBody.innerHTML = origHtml;
+
+                // 详情为空（hasStem=false 的手动录入错题）：直接展示列表里的截图
+                if (!detail) {
+                    const stemShoot = $(this).data("stemShoot");
+                    if (stemShoot) {
+                        $("#mistakeQstBody").html(`<img src="${proxyImgSrc(stemShoot)}" class="img-fluid rounded" alt="题目截图">`);
+                        $("#mistakeQstCard").show();
+                        $("#mistakeQstCard .card-header").text($(this).data("title") || "题目截图");
+                    } else {
+                        swal("无数据");
+                    }
+                    return;
+                }
 
                 // 1. 题目 & 答案 & 解析
                 if (detail.qstPath) {
@@ -1387,7 +1401,8 @@ async function mistake_query() {
                 if (detail.pictureNote && detail.pictureNote.length > 0) {
                     let picHtml = '<div class="row g-2">';
                     detail.pictureNote.forEach(url => {
-                        picHtml += `<div class="col-6 col-md-4"><img src="${proxyUrl(url)}" class="img-fluid rounded border" style="cursor:pointer;" onclick="window.open('${proxyUrl(url)}')" loading="lazy"></div>`;
+                        const proxied = proxyImgSrc(url);
+                        picHtml += `<div class="col-6 col-md-4"><img src="${proxied}" class="img-fluid rounded border" style="cursor:pointer;" onclick="window.open('${proxied}')" loading="lazy"></div>`;
                     });
                     picHtml += '</div>';
                     $("#mistakePicBody").html(picHtml);
