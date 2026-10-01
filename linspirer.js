@@ -7,7 +7,8 @@
 const LINSPIRER_KEY = CryptoJS.enc.Utf8.parse("1191ADF18489D8DA");
 const LINSPIRER_IV = CryptoJS.enc.Utf8.parse("5E9B755A8B674394");
 const LINSPIRER_API_BASE = "https://cloud.linspirer.com:883";
-const LINSPIRER_API = LINSPIRER_API_BASE + "/public-interface.php";
+// 浏览器请求走本地服务器转发（云服务器无 CORS 头，直连会被浏览器拦截）
+const LINSPIRER_API = "/linspirer-api";
 const CLIENT_VERSION = "zhongyukejiao_hem_6.10.004.6";
 const FIXED_UUID = "40E06F51-30D0-D6AD-7F7D-008AD0ADC570";
 
@@ -291,12 +292,11 @@ window.linspirerLogin = async function () {
     }
 };
 
-// 代理图标 URL（cloud.linspirer.com 的静态资源通过 nginx 代理）
+// 代理图标 URL（云服务器静态资源通过本地服务器转发，解决 CORS）
 function proxyUrl(url) {
     if (!url) return "";
-    return url
-        .replace("http://cloud.linspirer.com:880", LINSPIRER_API_BASE)
-        .replace("https://cloud.linspirer.com:883", LINSPIRER_API_BASE);
+    // 把 http(s)://cloud.linspirer.com:88x/path 改成本地转发路径
+    return url.replace(/https?:\/\/cloud\.linspirer\.com:\d+\//, "/linspirer-res/");
 }
 
 // 渲染应用列表

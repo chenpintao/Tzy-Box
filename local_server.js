@@ -46,6 +46,73 @@ const server = http.createServer((req, res) => {
   }
   if (parsed.pathname === '/health') return send(res, 200, JSON.stringify({ ok: true, service: 'ZhongYuToolBox' }), 'application/json; charset=utf-8');
   if (parsed.pathname === '/proxy/ping') return send(res, 200, 'pong');
+
+  // ===== 领创 API 转发（解决 cloud.linspirer.com 无 CORS 头的问题） =====
+  if (parsed.pathname === '/linspirer-api' && req.method === 'POST') {
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      const bodyBuf = Buffer.concat(chunks);
+      const upstream = https.request('https://cloud.linspirer.com:883/public-interface.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': bodyBuf.length,
+        },
+        timeout: 30000,
+      }, remote => {
+        const respChunks = [];
+        remote.on('data', c => respChunks.push(c));
+        remote.on('end', () => {
+          const respBuf = Buffer.concat(respChunks);
+          res.writeHead(remote.statusCode || 502, {
+            'Content-Type': remote.headers['content-type'] || 'text/html; charset=UTF-8',
+            'Access-Control-Allow-Origin': '*',
+          });
+          res.end(respBuf);
+        });
+      });
+      upstream.on('timeout', () => upstream.destroy(new Error('linspirer api timeout')));
+      upstream.on('error', () => {
+        if (!res.headersSent) send(res, 502, 'Linspirer API request failed');
+        else res.destroy();
+      });
+      upstream.write(bodyBuf);
+      upstream.end();
+    });
+    return;
+  }
+
+  // ===== 领创静态资源转发（图标等） =====
+  if (parsed.pathname.startsWith('/linspirer-res/') && (req.method === 'GET' || req.method === 'HEAD')) {
+    const subPath = parsed.pathname.substring('/linspirer-res/'.length);
+    const target = new URL(`https://cloud.linspirer.com:883/${subPath}${parsed.search}`);
+    const upstream = https.request(target, {
+      method: req.method,
+      headers: { Referer: 'http://cloud.linspirer.com:883/' },
+      timeout: 15000,
+    }, remote => {
+      if (remote.statusCode !== 200) {
+        remote.resume();
+        return send(res, remote.statusCode || 502, 'Resource request failed');
+      }
+      res.writeHead(remote.statusCode, {
+        'Content-Type': remote.headers['content-type'] || 'application/octet-stream',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=3600',
+      });
+      if (req.method === 'HEAD') { remote.resume(); return res.end(); }
+      remote.pipe(res);
+    });
+    upstream.on('timeout', () => upstream.destroy(new Error('resource timeout')));
+    upstream.on('error', () => {
+      if (!res.headersSent) send(res, 502, 'Resource request failed');
+      else res.destroy();
+    });
+    upstream.end();
+    return;
+  }
+
   if (parsed.pathname === '/image-proxy' && (req.method === 'GET' || req.method === 'HEAD')) {
     let target;
     try {
