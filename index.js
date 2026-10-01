@@ -1505,7 +1505,7 @@ login_btn.onclick = async () => {
 
             // 检查 server 是否为 https
             if (!schoolInfo.server.startsWith("https://")) {
-                swal("学校服务器环境不支持自适应登录，请联系作者");
+                swal("学校服务器环境不支持自适应登录，请联系开发者");
                 $("#login_btn").prop("disabled", false);
                 $("#login_btn").text("登录");
                 return;

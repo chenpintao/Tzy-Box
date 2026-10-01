@@ -308,7 +308,7 @@
 
 ## 技术支持
 
-- **开发者**：Loshop
+- **开发者**：Loshop & Cpt
 - **QQ群**：1067807011
 - **反馈表单**：https://forms.office.com/r/H7GDeK65Ux
 
