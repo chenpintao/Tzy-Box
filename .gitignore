@@ -6,8 +6,15 @@ __pycache__/
 shares.db
 downloaded/
 
-# 编辑器
+# 编辑器/依赖
 .vscode/
+node_modules/
+
+# 构建产物（pdf.js 的 build/ 是运行资源，不能忽略）
+dist-build/
+/dist/
+artifacts/
+*.spec
 
 # 临时文件
 _tmp_*

@@ -1,0 +1,12 @@
+{
+  "name": "tzy-box",
+  "version": "1.0.0",
+  "private": true,
+  "description": "中育账号资源聚合工具箱 - 本地运行服务",
+  "main": "local_server.js",
+  "scripts": {
+    "start": "node local_server.js",
+    "build": "node build.js"
+  },
+  "license": "MIT"
+}

@@ -6,7 +6,14 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 
-const ROOT = __dirname;
+// 静态根目录：优先取可执行文件所在目录（打包成单文件后，exe 旁边的 index.html/资源可被服务），
+// 否则退回脚本所在目录（直接 node local_server.js 时）。也支持 TOOLBOX_ROOT 环境变量覆盖。
+const EXE_DIR = (typeof process.pkg !== 'undefined')
+  ? path.dirname(process.execPath)
+  : __dirname;
+const ROOT = process.env.TOOLBOX_ROOT
+  ? path.resolve(process.env.TOOLBOX_ROOT)
+  : (fs.existsSync(path.join(EXE_DIR, 'index.html')) ? EXE_DIR : __dirname);
 const PORT = Number(process.env.PORT || 8080);
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8',
