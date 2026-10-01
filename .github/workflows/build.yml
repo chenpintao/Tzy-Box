@@ -99,7 +99,7 @@ jobs:
           pip install pyinstaller pyarmor
 
       - name: PyArmor 混淆源码（加密字节码）
-        run: pyarmor gen -O dist-build/python-obf --enable-jit --mix-str --assert-call --assert-import --private share_server.py
+        run: pyarmor gen -O dist-build/python-obf --mix-str share_server.py
 
       - name: PyInstaller 打包混淆后的源码
         run: pyinstaller --onefile --clean --hidden-import flask --hidden-import requests --hidden-import Crypto.Cipher.AES --hidden-import Crypto.Util.Padding --name share_server dist-build/python-obf/share_server.py
